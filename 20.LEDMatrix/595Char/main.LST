@@ -1,0 +1,117 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              12/01/2023 00:41:45 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include<reg51.h>
+   2          #include<intrins.h>
+   3          
+   4          sbit SRCLK=P3^6;
+   5          sbit RCLK=P3^5;
+   6          sbit SER=P3^4;
+   7          
+   8          //--定义要使用的IO口--//
+   9          #define COMMONPORTS   P0
+  10          
+  11          
+  12          unsigned char code TAB[8]  = {0x7f,0xbf,0xdf,0xef,0xf7,0xfb,0xfd,0xfe};
+  13          unsigned int thutu = 0, check = 0, en = 0;
+  14          unsigned char  dulieu[8];   // chua packet
+  15          
+  16          
+  17          void delay(unsigned int time)
+  18          {
+  19   1        unsigned int i,j;
+  20   1        for(i=0;i<time;i++)
+  21   1          for(j=0;j<50;j++);
+  22   1      }
+  23          
+  24          void init (void)
+  25          {
+  26   1        SCON=0X50;      //serial mode 1 Ren=1
+  27   1        TMOD=0X20;      //timer 1 mode 2
+  28   1        
+  29   1        TH1=0xFD;       //baud 9600
+  30   1        TL1=0xFD;
+  31   1        ES=1;           //cho phep ngat
+  32   1        EA=1;           
+  33   1        TR1=1;          //bat timer 1
+  34   1      }
+  35          
+  36          
+  37          void serial_ISR (void) interrupt 4
+  38          {
+  39   1        if (RI==1)
+  40   1        {
+  41   2          if(thutu==8)
+  42   2          thutu = 0;
+  43   2        dulieu[thutu] = SBUF;
+  44   2        thutu++;
+  45   2          RI = 0;
+  46   2        }
+  47   1      }
+  48          
+  49          void Hc595SendByte(unsigned char dat)
+  50          {
+  51   1        unsigned char a;
+  52   1        SRCLK=0;
+  53   1        RCLK=0;
+  54   1        for(a=0;a<8;a++)
+  55   1        {
+C51 COMPILER V9.60.0.0   MAIN                                                              12/01/2023 00:41:45 PAGE 2   
+
+  56   2          SER=dat>>7;
+  57   2          dat<<=1;
+  58   2      
+  59   2          SRCLK=1;
+  60   2          _nop_();
+  61   2          _nop_();
+  62   2          SRCLK=0;  
+  63   2        }
+  64   1      
+  65   1        RCLK=1;
+  66   1        _nop_();
+  67   1        _nop_();
+  68   1        RCLK=0;
+  69   1      }
+  70          
+  71          void main()
+  72          { 
+  73   1        unsigned char tab;
+  74   1        unsigned int  i;
+  75   1        init();
+  76   1        while(1)
+  77   1        { 
+  78   2          for(i= 0; i<15; i++ )   //两个字之间的扫描间隔时间
+  79   2          {
+  80   3            for(tab=0;tab<8;tab++)
+  81   3            { 
+  82   4      
+  83   4              Hc595SendByte(0x00);           //消隐                               
+  84   4              COMMONPORTS = TAB[tab];        //输出字码 
+  85   4              Hc595SendByte(dulieu[tab]); 
+  86   4              delay(1);   
+  87   4            }
+  88   3             
+  89   3          }
+  90   2      
+  91   2        } 
+  92   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    216    ----
+   CONSTANT SIZE    =      8    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
